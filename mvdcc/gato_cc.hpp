@@ -10,6 +10,7 @@
 #include <algorithm>
 
 // 전역 변수 선언 (extern 키워드 사용)
+extern std::vector<Result> AllResult; // 스레드별 성능 결과 저장
 extern std::unordered_map<uint64_t, int> record_to_thread; // 레코드 -> 스레드 매핑
 extern std::vector<int> thread_load;                       // 각 스레드의 부하
 extern std::unordered_map<uint64_t, int> last_writer;      // 레코드의 마지막 쓰기 스레드
@@ -80,14 +81,17 @@ void gato_cc_worker(int thread_id, const bool& start, const bool& quit) {
 
         // CC 단계 실행
         for (auto& trans : local_batch) {
+            bool is_success = true;
+
             for (const auto& task : trans.task_set_) {
                 {
                     std::lock_guard<std::mutex> lock(mapping_mutex);
                     if (record_to_thread.find(task.key_) == record_to_thread.end()) {
-                        continue; // 다음 작업으로 넘어감
+                        is_success = false; // 관리되지 않은 레코드가 있으면 실패 처리
+                        continue;
                     }
                     int assigned_thread = record_to_thread[task.key_];
-                    if (assigned_thread != thread_id) continue; // 현재 스레드가 관리하는 레코드가 아니면 스킵
+                    if (assigned_thread != thread_id) continue; // 현재 스레드가 관리하지 않으면 스킵
                 }
 
                 if (task.ope_ == Ope::WRITE) {
@@ -100,6 +104,12 @@ void gato_cc_worker(int thread_id, const bool& start, const bool& quit) {
                     Table[task.key_].addPlaceholder(trans.timestamp_);
                     trans.write_set_.emplace_back(task.key_);
                 }
+            }
+
+            // 트랜잭션 처리 성공 시 결과 업데이트
+            if (is_success) {
+                std::lock_guard<std::mutex> result_lock(mapping_mutex);
+                AllResult[thread_id].commit_cnt_++; // 커밋된 트랜잭션 카운트 증가
             }
 
             // 부하 증가
@@ -121,5 +131,6 @@ void gato_cc_worker(int thread_id, const bool& start, const bool& quit) {
         }
     }
 }
+
 
 #endif // GATO_CC_HPP
