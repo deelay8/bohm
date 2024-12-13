@@ -22,6 +22,7 @@ std::unordered_map<uint64_t, int> last_writer;            // 마지막으로 쓰
 std::mutex mapping_mutex;                                 // 매핑 동기화 뮤텍스
 std::mutex partition_mutex;                               // 파티션 동기화 뮤텍스
 std::condition_variable ready_queue_cv;                  // Ready Queue 조건 변수
+std::vector<Result> AllResult;                           // 스레드별 성능 결과 저장
 
 int main() {
     size_t thread_num = DEFAULT_THREAD_NUM;
@@ -33,17 +34,19 @@ int main() {
 
     // 스레드별 부하 초기화
     thread_load.resize(thread_num, 0);
+    AllResult.resize(thread_num); // 스레드별 커밋 결과 초기화
 
     // 레코드 분배 (Static Partitioning)
     assignRecordsToThreads(thread_num, tuple_num);
 
-    // 디버깅: 초기 레코드 분배 상태 출력
-    //debugThreadLoad();
-
+    // Gato 알고리즘 실행
     bool start = false;
     bool quit = false;
 
     std::vector<std::thread> cc_workers;
+
+    // 시작 시간 측정
+    auto start_time = std::chrono::high_resolution_clock::now();
 
     // Gato CC 워커 실행
     for (size_t i = 0; i < thread_num; ++i) {
@@ -64,9 +67,23 @@ int main() {
         worker.join();
     }
 
+    // 종료 시간 측정
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+
+    // 처리량 계산
+    uint64_t total_commits = 0;
+    for (const auto& result : AllResult) {
+        total_commits += result.commit_cnt_;
+    }
+
+    double throughput = total_commits / elapsed.count(); // 처리량 계산 (txn/sec)
+
     // 결과 출력
-    std::cout << "Execution finished. Final thread load distribution:" << std::endl;
-    debugThreadLoad();
+    std::cout << "Gato Algorithm Performance:" << std::endl;
+    std::cout << "Execution Time: " << elapsed.count() << " seconds" << std::endl;
+    std::cout << "Total Transactions Committed: " << total_commits << std::endl;
+    std::cout << "Throughput: " << throughput << " transactions/sec" << std::endl;
 
     return 0;
 }
