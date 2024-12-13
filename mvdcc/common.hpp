@@ -12,6 +12,12 @@
 #include <iostream>
 #include <algorithm>
 
+// Result 클래스: 스레드별 트랜잭션 결과 저장
+class Result {
+public:
+    uint64_t commit_cnt_ = 0; // 커밋된 트랜잭션 수
+};
+
 // Task 클래스: 트랜잭션 작업 정의
 enum class Ope { READ, WRITE };
 
