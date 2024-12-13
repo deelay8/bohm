@@ -18,6 +18,7 @@ uint64_t tx_counter = 0;
 std::vector<std::vector<uint64_t>> thread_partitions;
 std::mutex partition_mutex;
 std::condition_variable ready_queue_cv;
+std::vector<Result> AllResult; // 스레드별 성능 결과 저장
 
 int main() {
     size_t thread_num = DEFAULT_THREAD_NUM;
@@ -27,23 +28,25 @@ int main() {
     makeDB(tuple_num);
     initializeTransactions(tuple_num);
 
-    // CC 스레드와 실행 스레드 분리
-    size_t cc_thread_num = thread_num;
-    size_t exec_thread_num = thread_num - cc_thread_num;
+    // 스레드별 결과 초기화
+    AllResult.resize(thread_num);
 
     // CC 스레드에 레코드 할당
-    assignRecordsToCCThreads(cc_thread_num, tuple_num);
+    assignRecordsToCCThreads(thread_num, tuple_num);
 
-    // 레코드 분배 디버깅
-    debugRecordDistribution(cc_thread_num);
+    // 디버깅: 레코드 분배 상태 출력
+    debugRecordDistribution(thread_num);
 
     bool start = false;
     bool quit = false;
 
     std::vector<std::thread> cc_workers;
 
+    // 시작 시간 측정
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     // CC 워커 실행
-    for (size_t i = 0; i < cc_thread_num; ++i) {
+    for (size_t i = 0; i < thread_num; ++i) {
         cc_workers.emplace_back(cc_worker, i, std::ref(start), std::ref(quit));
     }
 
@@ -61,8 +64,23 @@ int main() {
         worker.join();
     }
 
+    // 종료 시간 측정
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+
+    // 처리량 계산
+    uint64_t total_commits = 0;
+    for (const auto& result : AllResult) {
+        total_commits += result.commit_cnt_;
+    }
+
+    double throughput = total_commits / elapsed.count(); // 처리량 계산 (txn/sec)
+
     // 결과 출력
-    std::cout << "Execution finished." << std::endl;
+    std::cout << "Bohm Algorithm Performance:" << std::endl;
+    std::cout << "Execution Time: " << elapsed.count() << " seconds" << std::endl;
+    std::cout << "Total Transactions Committed: " << total_commits << std::endl;
+    std::cout << "Throughput: " << throughput << " transactions/sec" << std::endl;
 
     return 0;
 }
