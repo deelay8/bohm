@@ -34,12 +34,12 @@ void assignRecordsToThreads(size_t cc_thread_num, size_t tuple_num) {
 }
 
 // Debug: Print Load Status per Thread
-void debugThreadLoad() {
-    std::lock_guard<std::mutex> lock(mapping_mutex);
-    for (size_t i = 0; i < thread_load.size(); ++i) {
-        std::cout << "[DEBUG] Thread " << i << " load: " << thread_load[i] << std::endl;
-    }
-}
+// void debugThreadLoad() {
+//     std::lock_guard<std::mutex> lock(mapping_mutex);
+//     for (size_t i = 0; i < thread_load.size(); ++i) {
+//         std::cout << "[DEBUG] Thread " << i << " load: " << thread_load[i] << std::endl;
+//     }
+// }
 
 // Load Redistribution Function
 void redistributeLoad(int overloaded_thread, int underloaded_thread) {
@@ -48,7 +48,7 @@ void redistributeLoad(int overloaded_thread, int underloaded_thread) {
     // Validate Threads
     if (overloaded_thread < 0 || overloaded_thread >= thread_load.size() ||
         underloaded_thread < 0 || underloaded_thread >= thread_load.size()) {
-        std::cerr << "[ERROR] Invalid thread IDs in redistributeLoad." << std::endl;
+        // std::cerr << "[ERROR] Invalid thread IDs in redistributeLoad." << std::endl;
         return;
     }
 
@@ -57,8 +57,8 @@ void redistributeLoad(int overloaded_thread, int underloaded_thread) {
             record_to_thread[record] = underloaded_thread;
             thread_load[overloaded_thread]--;
             thread_load[underloaded_thread]++;
-            std::cout << "[DEBUG] Moved Record " << record << " from Thread "
-                      << overloaded_thread << " to Thread " << underloaded_thread << std::endl;
+            // std::cout << "[DEBUG] Moved Record " << record << " from Thread "
+            //           << overloaded_thread << " to Thread " << underloaded_thread << std::endl;
             return; // Move Only One Record at a Time
         }
     }
@@ -121,7 +121,7 @@ void gato_cc_worker(int thread_id, const bool& start, const bool& quit) {
         {
             int max_load = *std::max_element(thread_load.begin(), thread_load.end());
             int min_load = *std::min_element(thread_load.begin(), thread_load.end());
-            if (max_load - min_load > 10) { // Load Difference Exceeds Threshold
+            if (max_load - min_load > BATCH_SIZE/DEFAULT_THREAD_NUM) { // Load Difference Exceeds Threshold
                 int overloaded_thread = std::distance(thread_load.begin(),
                                         std::max_element(thread_load.begin(), thread_load.end()));
                 int underloaded_thread = std::distance(thread_load.begin(),
