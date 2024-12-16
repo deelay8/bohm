@@ -113,14 +113,23 @@ void makeDB(size_t tuple_num) {
     }
 }
 
-void initializeTransactions(size_t tuple_num) {
+void initializeTransactions(size_t tuple_num, double read_ratio) {
     transactions.resize(tuple_num);
     for (uint64_t i = 0; i < tuple_num; ++i) {
         transactions[i] = Transaction(i);
-        transactions[i].task_set_ = {
-            Task(Ope::READ, i % tuple_num),
-            Task(Ope::WRITE, (i + 1) % tuple_num)
-        };
+        transactions[i].task_set_.clear(); // Initialize
+
+        size_t task_num = 10; 
+        for (size_t j = 0; j < task_num; ++j) {
+            double rand_value = static_cast<double>(rand()) / RAND_MAX; // 0.0 ~ 1.0 
+            if (rand_value < read_ratio) {
+                // Read
+                transactions[i].task_set_.emplace_back(Ope::READ, j % tuple_num);
+            } else {
+                // Write
+                transactions[i].task_set_.emplace_back(Ope::WRITE, (j + 1) % tuple_num);
+            }
+        }
     }
 }
 
