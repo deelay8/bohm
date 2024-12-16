@@ -6,7 +6,7 @@
 #define DEFAULT_TUPLE_NUM 1000000  // Default number of records for debugging
 #define MAX_OPE 10                 // Maximum operations per transaction
 #define EX_TIME 3                  // Execution time in seconds
-#define BATCH_SIZE 50              // Reduced batch size for debugging
+#define BATCH_SIZE 200              // Reduced batch size for debugging
 #define MAX_RETRY 10               // Max retries for failed transactions
 
 #endif // CONFIG_HPP
