@@ -9,11 +9,11 @@
 #include <condition_variable>
 #include <mutex>
 
-// 전역 데이터 정의
-extern std::vector<Result> AllResult; // 스레드별 성능 결과 저장
+// Global Data Definition
+extern std::vector<Result> AllResult; // Store Performance Results per Thread
 extern std::vector<std::vector<uint64_t>> thread_partitions;
 
-// 레코드 분배 함수
+// Record Distribution Function
 void assignRecordsToCCThreads(size_t cc_thread_num, size_t tuple_num) {
     thread_partitions.resize(cc_thread_num);
     for (uint64_t i = 0; i < tuple_num; ++i) {
@@ -28,24 +28,24 @@ void cc_worker(int thread_id, const bool& start, const bool& quit) {
     while (!__atomic_load_n(&quit, __ATOMIC_SEQ_CST)) {
         std::vector<Transaction> local_batch;
 
-        // 트랜잭션 배치 가져오기
+        // Retrieve Transaction Batch
         uint64_t start_pos = __atomic_fetch_add(&tx_counter, BATCH_SIZE, __ATOMIC_SEQ_CST);
         uint64_t end_pos = std::min(start_pos + BATCH_SIZE, (uint64_t)transactions.size());
         for (uint64_t i = start_pos; i < end_pos; ++i) {
             local_batch.emplace_back(transactions[i]);
         }
 
-        // 트랜잭션 정렬
+        // Transaction Sorting
         std::sort(local_batch.begin(), local_batch.end(), [](const Transaction& a, const Transaction& b) {
             return a.timestamp_ < b.timestamp_;
         });
 
-        // CC 단계 실행
+        // Execute CC Phase
         for (auto& trans : local_batch) {
             bool is_success = true;
 
             for (const auto& task : trans.task_set_) {
-                // 현재 스레드가 관리하는 레코드인 경우 처리
+                // Process if the Record is Managed by the Current Thread
                 if (task.ope_ == Ope::WRITE &&
                     std::find(thread_partitions[thread_id].begin(),
                               thread_partitions[thread_id].end(),
@@ -55,25 +55,25 @@ void cc_worker(int thread_id, const bool& start, const bool& quit) {
                 }
             }
 
-            // Ready Queue에 추가
+            // Add to Ready Queue
             {
                 std::lock_guard<std::mutex> lock(partition_mutex);
                 ready_queue.push(trans);
             }
 
-            // 성공적으로 트랜잭션이 처리된 경우 결과 업데이트
+            // Update Results if the Transaction is Successfully Processed
             if (is_success) {
-                AllResult[thread_id].commit_cnt_++;  // 커밋된 트랜잭션 수 증가
+                AllResult[thread_id].commit_cnt_++;  // Increment the Number of Committed Transactions
             }
         }
 
-        // Execution 워커에게 알림
+        // Notify the Execution Worker
         ready_queue_cv.notify_all();
     }
 }
 
 
-// 레코드 분배를 디버깅하는 함수
+// Function to Debug Record Distribution
 void debugRecordDistribution(size_t cc_thread_num) {
     for (size_t thread_id = 0; thread_id < cc_thread_num; ++thread_id) {
         std::cout << "[DEBUG] CC Thread " << thread_id << " assigned records: ";
