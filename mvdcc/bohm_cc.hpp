@@ -74,14 +74,14 @@ void cc_worker(int thread_id, const bool& start, const bool& quit) {
 
 
 // Function to Debug Record Distribution
-void debugRecordDistribution(size_t cc_thread_num) {
-    for (size_t thread_id = 0; thread_id < cc_thread_num; ++thread_id) {
-        std::cout << "[DEBUG] CC Thread " << thread_id << " assigned records: ";
-        for (const auto& record : thread_partitions[thread_id]) {
-            std::cout << record << " ";
-        }
-        std::cout << std::endl;
-    }
-}
+// void debugRecordDistribution(size_t cc_thread_num) {
+    // for (size_t thread_id = 0; thread_id < cc_thread_num; ++thread_id) {
+        // std::cout << "[DEBUG] CC Thread " << thread_id << " assigned records: ";
+        // for (const auto& record : thread_partitions[thread_id]) {
+        //     std::cout << record << " ";
+        // }
+        // std::cout << std::endl;
+    // }
+// }
 
 #endif // BOHM_CC_HPP
