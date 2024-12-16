@@ -21,21 +21,19 @@ std::condition_variable ready_queue_cv;
 std::vector<Result> AllResult; // Store Performance Results Per Thread
 
 int main() {
-    size_t thread_num = DEFAULT_THREAD_NUM;
+    size_t thread_num = DEFAULT_THREAD_NUM; 
     size_t tuple_num = DEFAULT_TUPLE_NUM;
+    double read_ratio = 0.3; 
 
     // Initialize Database and Transactions
     makeDB(tuple_num);
-    initializeTransactions(tuple_num);
+    initializeTransactions(tuple_num, read_ratio);
 
     // Initialize Results Per Thread
     AllResult.resize(thread_num);
 
     // Allocate Records to CC Threads
     assignRecordsToCCThreads(thread_num, tuple_num);
-
-    // Debug: Print Record Distribution Status
-    debugRecordDistribution(thread_num);
 
     bool start = false;
     bool quit = false;
@@ -53,13 +51,15 @@ int main() {
     // Start Worker
     __atomic_store_n(&start, true, __ATOMIC_SEQ_CST);
 
-    // Execute for a Specified Duration
-    std::this_thread::sleep_for(std::chrono::seconds(EX_TIME));
+    // Wait Until All Transactions Are Processed
+    while (tx_counter < transactions.size()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); 
+    }
 
     // Send End Signal
     __atomic_store_n(&quit, true, __ATOMIC_SEQ_CST);
 
-    // Wait for Worker
+    // Wait for All Worker Threads to Finish
     for (auto& worker : cc_workers) {
         worker.join();
     }
@@ -76,7 +76,7 @@ int main() {
 
     double throughput = total_commits / elapsed.count(); // Calculate Throughput (txn/sec)
 
-    // Print Result
+    // Print Results
     std::cout << "Bohm Algorithm Performance:" << std::endl;
     std::cout << "Execution Time: " << elapsed.count() << " seconds" << std::endl;
     std::cout << "Total Transactions Committed: " << total_commits << std::endl;
