@@ -12,13 +12,13 @@
 #include <iostream>
 #include <algorithm>
 
-// Result 클래스: 스레드별 트랜잭션 결과 저장
+// Result Class: Store Transaction Results Per Thread
 class Result {
 public:
-    uint64_t commit_cnt_ = 0; // 커밋된 트랜잭션 수
+    uint64_t commit_cnt_ = 0; // Number of Committed Transactions
 };
 
-// Task 클래스: 트랜잭션 작업 정의
+// Task Class: Define Transaction Tasks
 enum class Ope { READ, WRITE };
 
 class Task {
@@ -29,19 +29,19 @@ public:
     Task(Ope ope, uint64_t key) : ope_(ope), key_(key) {}
 };
 
-// Transaction 클래스: 트랜잭션 데이터
+// Transaction Class: Transaction Data
 class Transaction {
 public:
     uint64_t timestamp_;
     std::vector<std::pair<uint64_t, uint64_t>> read_set_;
     std::vector<uint64_t> write_set_;
-    std::vector<Task> task_set_; // Task 작업 리스트
+    std::vector<Task> task_set_; // Task Ope List
 
     Transaction(uint64_t timestamp) : timestamp_(timestamp) {}
     Transaction() : timestamp_(0) {}
 };
 
-// Tuple 클래스: 데이터베이스의 레코드
+// Tuple Class: Records in the Database
 class Tuple {
 public:
     struct Version {
@@ -95,7 +95,7 @@ public:
     }
 };
 
-// 전역 변수 정의
+// Global Variable Definition
 extern std::vector<Tuple> Table;
 extern std::vector<Transaction> transactions;
 extern std::priority_queue<Transaction, std::vector<Transaction>, 
@@ -105,7 +105,7 @@ extern std::vector<std::vector<uint64_t>> thread_partitions;
 extern std::mutex partition_mutex;
 extern std::condition_variable ready_queue_cv;
 
-// 공통 함수 정의
+// Common Function Definition
 void makeDB(size_t tuple_num) {
     Table.resize(tuple_num);
     for (size_t i = 0; i < tuple_num; ++i) {
