@@ -27,7 +27,7 @@ std::vector<Result> AllResult;                           // Store Performance Re
 int main() {
     size_t thread_num = DEFAULT_THREAD_NUM;
     size_t tuple_num = DEFAULT_TUPLE_NUM;
-    double read_ratio = 0.3;
+    double read_ratio = 0.5;
 
     // Initialize Database and Transactions
     makeDB(tuple_num);
