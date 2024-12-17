@@ -122,12 +122,14 @@ void initializeTransactions(size_t tuple_num, double read_ratio) {
         size_t task_num = 10; 
         for (size_t j = 0; j < task_num; ++j) {
             double rand_value = static_cast<double>(rand()) / RAND_MAX; // 0.0 ~ 1.0 
+            uint64_t random_key = rand() % tuple_num; // 0 ~ tuple_num-1
+
             if (rand_value < read_ratio) {
                 // Read
-                transactions[i].task_set_.emplace_back(Ope::READ, j % tuple_num);
+                transactions[i].task_set_.emplace_back(Ope::READ, random_key);
             } else {
                 // Write
-                transactions[i].task_set_.emplace_back(Ope::WRITE, (j + 1) % tuple_num);
+                transactions[i].task_set_.emplace_back(Ope::WRITE, random_key);
             }
         }
     }
